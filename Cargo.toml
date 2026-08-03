@@ -1,0 +1,21 @@
+[package]
+name = "atrep-py"
+# The bindings version IS the PyPI version (maturin reads it);
+# aligned with the atrep core it wraps, starting at 0.3.0.
+version = "0.3.0"
+edition = "2021"
+license = "MIT OR Apache-2.0"
+repository = "https://gitlab.com/atrep/atrep-py"
+description = "Python bindings for Atrep semantic markup: check, respellings, outline, endo importers, dialektoi"
+
+[lib]
+name = "atrep"
+crate-type = ["cdylib"]
+
+[dependencies]
+# The published core, offline: default features (net, bundle) off
+# keeps the dependency closure pure Rust. The std dialektoi are
+# embedded; non-std ones resolve from the path's directory.
+atrep = { version = "0.3.0", default-features = false }
+unicode-normalization = "0.1"
+pyo3 = { version = "0.29.0", features = ["extension-module", "abi3-py39"] }
