@@ -4,6 +4,10 @@ name = "atrep-py"
 # aligned with the atrep core it wraps, starting at 0.3.0.
 version = "0.3.0"
 edition = "2021"
+# This crate ships to PyPI as wheels (maturin), never to
+# crates.io — the registry surface for the library is the core
+# `atrep` crate itself.
+publish = false
 license = "MIT OR Apache-2.0"
 repository = "https://gitlab.com/atrep/atrep-py"
 description = "Python bindings for Atrep semantic markup: check, respellings, outline, endo importers, dialektoi"
