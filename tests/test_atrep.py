@@ -29,7 +29,7 @@ DIA = (
 
 
 def test_version():
-    assert atrep.version() == "0.3.0"
+    assert atrep.version() == "0.3.1"
 
 
 def test_check_document():
