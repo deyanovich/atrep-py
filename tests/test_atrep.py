@@ -29,7 +29,7 @@ DIA = (
 
 
 def test_version():
-    assert atrep.version() == "0.3.1"
+    assert atrep.version() == "0.3.3"
 
 
 def test_check_document():
@@ -80,6 +80,35 @@ def test_endo_markdown():
     a = atrep.endo("markdown", "# Title\n\nSome prose.\n")
     assert atrep.check(a) == "document"
     assert "Title" in a
+
+
+def test_endo_conllu_parsing_pack():
+    conllu = (
+        "# sent_id = 1\n# text = Arma virumque cano.\n"
+        "1\tArma\tarma\tNOUN\t_\tCase=Acc|Number=Plur\t3\tobj\t_\t_\n"
+        "2\tvirumque\tvir\tNOUN\t_\tCase=Acc|Number=Sing\t1\tconj\t_\t_\n"
+        "3\tcano\tcano\tVERB\t_\tMood=Ind|Person=1\t0\troot\t_\tSpaceAfter=No\n"
+        "4\t.\t.\tPUNCT\t_\t_\t3\tpunct\t_\t_\n\n"
+    )
+    a = atrep.endo("conllu", conllu)
+    assert atrep.check(a) == "document"
+    assert "@!=(arma)" in a and "@!/(NOUN)" in a
+
+
+def test_endo_tei_cast_and_choice():
+    tei = (
+        '<TEI xmlns="http://www.tei-c.org/ns/1.0"><teiHeader><fileDesc>'
+        "<titleStmt><title>Tom Sawyer</title></titleStmt></fileDesc>"
+        "<profileDesc><particDesc><listPerson>"
+        '<person xml:id="polly"><persName>Aunt Polly</persName></person>'
+        "</listPerson></particDesc></profileDesc></teiHeader><text><body>"
+        '<p><said who="#polly">Tom!</said> <choice><orig>ye olde</orig>'
+        "<reg>the old</reg></choice> fence.</p></body></text></TEI>"
+    )
+    a = atrep.endo("tei", tei)
+    assert atrep.check(a) == "document"
+    assert "@:!Aunt Polly!:@(polly)" in a
+    assert "@@.@?~(ye_olde)the old.@@" in a
 
 
 def test_endo_unknown_format():

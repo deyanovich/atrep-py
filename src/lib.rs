@@ -126,8 +126,10 @@ fn outline(py: Python<'_>, text: &str, path: &str) -> PyResult<Py<PyDict>> {
 
 /// Foreign format -> canonical atrep (brachygraphic spelling).
 /// Formats: markdown | html | rst | org | djot | docbook | bibtex
-/// | jats | tei | usfm | usx | osis. `scheme` applies a
-/// versification milestone scheme (usfm/usx/osis only).
+/// | jats | tei | usfm | usx | osis | fb2 | rnc | opencorpora |
+/// proiel | conllu. `scheme` applies a versification milestone
+/// scheme (usfm/usx/osis only). FB2 binaries are not returned:
+/// the document references them as media/<id>.
 #[pyfunction]
 #[pyo3(signature = (format, text, scheme=None))]
 fn endo(format: &str, text: &str, scheme: Option<&str>) -> PyResult<String> {
@@ -145,6 +147,11 @@ fn endo(format: &str, text: &str, scheme: Option<&str>) -> PyResult<String> {
         "usfm" => e::usfm_to_document(text),
         "usx" => e::usx_to_document(text),
         "osis" => e::osis_to_document(text),
+        "fb2" => ::atrep::fb2::fb2_to_document(text),
+        "rnc" => ::atrep::epimerismos::rnc_to_document(text),
+        "opencorpora" => ::atrep::epimerismos::opencorpora_to_document(text),
+        "proiel" => ::atrep::epimerismos::proiel_to_document(text),
+        "conllu" => ::atrep::epimerismos::conllu_to_document(text),
         other => return Err(aerr(format!("unsupported endo format: {other}"))),
     }
     .map_err(aerr)?;

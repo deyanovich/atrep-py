@@ -47,7 +47,8 @@ o["deixes"]       # located deixis references
 
 ```python
 # Foreign formats -> canonical atrep: markdown | html | rst |
-# org | djot | docbook | bibtex | jats | tei | usfm | usx | osis.
+# org | djot | docbook | bibtex | jats | tei | usfm | usx | osis |
+# fb2 | rnc | opencorpora | proiel | conllu.
 a = atrep.endo("markdown", open("notes.md").read())
 
 # Versification milestone scheme (usfm/usx/osis only).
