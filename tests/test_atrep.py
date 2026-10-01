@@ -29,7 +29,7 @@ DIA = (
 
 
 def test_version():
-    assert atrep.version() == "0.3.3"
+    assert atrep.version() == "0.3.4"
 
 
 def test_check_document():
@@ -108,7 +108,7 @@ def test_endo_tei_cast_and_choice():
     a = atrep.endo("tei", tei)
     assert atrep.check(a) == "document"
     assert "@:!Aunt Polly!:@(polly)" in a
-    assert "@@.@?~(ye_olde)the old.@@" in a
+    assert "@@.@?~(ye\\ olde)the old.@@" in a
 
 
 def test_endo_unknown_format():
