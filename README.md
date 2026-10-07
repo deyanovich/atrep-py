@@ -48,8 +48,12 @@ o["deixes"]       # located deixis references
 ```python
 # Foreign formats -> canonical atrep: markdown | html | rst |
 # org | djot | docbook | bibtex | jats | tei | usfm | usx | osis |
-# fb2 | rnc | opencorpora | proiel | conllu.
+# fb2 | rnc | opencorpora | proiel | conllu | dsl.
 a = atrep.endo("markdown", open("notes.md").read())
+
+# A Lingvo DSL dictionary is UTF-16 (or a code page): decode it
+# first, then pass the text; the result is lexigramma.
+a = atrep.endo("dsl", open("webster.dsl", encoding="utf-16").read())
 
 # Versification milestone scheme (usfm/usx/osis only).
 a = atrep.endo("usfm", open("john.usfm").read(), scheme="std")

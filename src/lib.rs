@@ -127,7 +127,7 @@ fn outline(py: Python<'_>, text: &str, path: &str) -> PyResult<Py<PyDict>> {
 /// Foreign format -> canonical atrep (brachygraphic spelling).
 /// Formats: markdown | html | rst | org | djot | docbook | bibtex
 /// | jats | tei | usfm | usx | osis | fb2 | rnc | opencorpora |
-/// proiel | conllu. `scheme` applies a versification milestone
+/// proiel | conllu | dsl. `scheme` applies a versification milestone
 /// scheme (usfm/usx/osis only). FB2 binaries are not returned:
 /// the document references them as media/<id>.
 #[pyfunction]
@@ -152,6 +152,10 @@ fn endo(format: &str, text: &str, scheme: Option<&str>) -> PyResult<String> {
         "opencorpora" => ::atrep::epimerismos::opencorpora_to_document(text),
         "proiel" => ::atrep::epimerismos::proiel_to_document(text),
         "conllu" => ::atrep::epimerismos::conllu_to_document(text),
+        // ABBYY Lingvo DSL, decoded by the caller: a file is
+        // UTF-16 or a code page, so read it as bytes and decode
+        // (atrep's `dsl` module does) before passing the text.
+        "dsl" => ::atrep::dsl::dsl_text_to_document(text, None),
         other => return Err(aerr(format!("unsupported endo format: {other}"))),
     }
     .map_err(aerr)?;

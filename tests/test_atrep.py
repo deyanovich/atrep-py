@@ -29,7 +29,7 @@ DIA = (
 
 
 def test_version():
-    assert atrep.version() == "0.3.5"
+    assert atrep.version() == "0.3.6"
 
 
 def test_check_document():
@@ -132,6 +132,23 @@ def test_endo_tei_bibliography_and_cite_span():
     assert "@@@!(bibliogramma)" in a
     assert "@& gibbon1776\n@: author\nGibbon, Edward\n:@" in a
     assert "@: year\n1776\n:@\n&@.book" in a
+
+
+def test_endo_dsl():
+    dsl = (
+        '#NAME "Webster"\n#INDEX_LANGUAGE "English"\n#CONTENTS_LANGUAGE "English"\n\n'
+        "Liberal\n\t[m1][p]a.[/p][/m]\n"
+        "\t[m1]1) Free by birth; noble. [ex]a liberal ancestry[/ex][/m]\n"
+        "\t[m1]2) Generous; bounteous. See <<Liberalism>>.[/m]\n\n"
+        "Liberalism\n\t[m1]Liberal principles.[/m]\n"
+    )
+    a = atrep.endo("dsl", dsl)
+    assert atrep.check(a) == "document"
+    assert a.startswith("@@@!lexigramma\n")
+    assert "@=/en en/=@" in a
+    assert "@! Liberal\n@=&a.&=@\n\n@:(1)\nFree by birth; noble. @~a liberal ancestry~@\n:@" in a
+    assert "See @>(Liberalism)." in a
+    assert "@! Liberalism\n@:(1)\nLiberal principles.\n:@" in a
 
 
 def test_endo_unknown_format():
