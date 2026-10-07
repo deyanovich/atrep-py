@@ -29,7 +29,7 @@ DIA = (
 
 
 def test_version():
-    assert atrep.version() == "0.3.4"
+    assert atrep.version() == "0.3.5"
 
 
 def test_check_document():
@@ -109,6 +109,29 @@ def test_endo_tei_cast_and_choice():
     assert atrep.check(a) == "document"
     assert "@:!Aunt Polly!:@(polly)" in a
     assert "@@.@?~(ye\\ olde)the old.@@" in a
+
+
+def test_endo_tei_bibliography_and_cite_span():
+    tei = (
+        '<TEI xmlns="http://www.tei-c.org/ns/1.0"><teiHeader><fileDesc>'
+        "<titleStmt><title>On Empires</title></titleStmt></fileDesc>"
+        "</teiHeader><text><body>"
+        '<p>Rome fell slowly <ref target="#gibbon1776">ch. 15</ref> and '
+        'Persia was vast <ptr target="#herodotus"/>.</p>'
+        '<listBibl><bibl xml:id="gibbon1776"><author>Gibbon, Edward</author>'
+        '<title level="m">The Decline and Fall of the Roman Empire</title>'
+        "<date>1776</date></bibl>"
+        '<bibl xml:id="herodotus"><author>Herodotus</author>'
+        "<title>The Histories</title></bibl></listBibl>"
+        "</body></text></TEI>"
+    )
+    a = atrep.endo("tei", tei)
+    assert atrep.check(a) == "document"
+    assert "@@.@>[(gibbon1776)ch. 15.@@" in a
+    assert "vast @>[(herodotus)." in a
+    assert "@@@!(bibliogramma)" in a
+    assert "@& gibbon1776\n@: author\nGibbon, Edward\n:@" in a
+    assert "@: year\n1776\n:@\n&@.book" in a
 
 
 def test_endo_unknown_format():
