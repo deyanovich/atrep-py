@@ -29,7 +29,7 @@ DIA = (
 
 
 def test_version():
-    assert atrep.version() == "0.3.6"
+    assert atrep.version() == "0.3.7"
 
 
 def test_check_document():
@@ -181,6 +181,28 @@ def test_std_dialektoi():
     assert "litogramma" in ids
     assert "koine" in ids
     assert len(ids) >= 14
+
+
+def test_word_round_trip():
+    atd = (
+        "@@@!litogramma\n\n@=On Fences and Empires=@\n\n@=:Mark Twain:=@\n\n"
+        "@# Empires\nRome fell slowly@^(f1) and the fence was @*thirty yards*@ long.\n\n"
+        "@+ Prices\nBoy | Price\n--- | -----\nBen | an apple\n+@\n#@\n\n"
+        "@^\nA footnote on Rome.\n^@(f1)\n"
+    )
+    data = atrep.exo_docx(atd)
+    assert data[:2] == b"PK"
+    back = atrep.endo_bytes("docx", data)
+    assert atrep.check(back) == "document"
+    assert "@=On Fences and Empires=@" in back
+    assert "Rome fell slowly@^(f1) and the fence was @*thirty yards*@ long." in back
+    assert "@+=\n@+:\nBoy\n:+@\n\n@+:\nPrice\n:+@\n=+@" in back
+    assert "@^\nA footnote on Rome.\n^@(f1)" in back
+
+
+def test_endo_bytes_unknown():
+    with pytest.raises(atrep.AtrepError):
+        atrep.endo_bytes("latex", b"x")
 
 
 def test_errors_are_atrep_error():

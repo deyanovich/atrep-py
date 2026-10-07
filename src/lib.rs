@@ -10,7 +10,7 @@ use std::path::Path;
 use pyo3::create_exception;
 use pyo3::exceptions::PyException;
 use pyo3::prelude::*;
-use pyo3::types::{PyDict, PyList};
+use pyo3::types::{PyBytes, PyDict, PyList};
 use unicode_normalization::UnicodeNormalization;
 
 create_exception!(atrep, AtrepError, PyException, "An atrep error.");
@@ -168,6 +168,57 @@ fn endo(format: &str, text: &str, scheme: Option<&str>) -> PyResult<String> {
     Ok(::atrep::dendron::serialize(&doc))
 }
 
+/// Foreign format given as bytes -> canonical atrep: a Word
+/// document (`docx`; its images are not returned, the document
+/// refers to them as media/<name>) or a Lingvo dictionary (`dsl`,
+/// UTF-16 or a code page, `.dsl.dz` gzip).
+#[pyfunction]
+fn endo_bytes(format: &str, data: &[u8]) -> PyResult<String> {
+    let doc = match format {
+        "docx" => ::atrep::docx::docx_to_document(data),
+        "dsl" => ::atrep::dsl::dsl_to_document(data),
+        other => return Err(aerr(format!("unsupported endo_bytes format: {other}"))),
+    }
+    .map_err(aerr)?;
+    Ok(::atrep::dendron::serialize(&doc))
+}
+
+/// Export a litogramma document as a Word file: the bytes of the
+/// .docx. `media` maps the enmedia parameters the document uses
+/// (`media/fence.png`) to their bytes; an image without one is
+/// written as its name.
+#[pyfunction]
+#[pyo3(signature = (text, media=None))]
+fn exo_docx(py: Python<'_>, text: &str, media: Option<HashMap<String, Vec<u8>>>) -> PyResult<Py<PyBytes>> {
+    // Kanonizo settles the document (taxis, autonyms, the table
+    // grid) from a file; a scratch directory holds the text and
+    // the media it names.
+    let dir = std::env::temp_dir().join(format!("atrep-py-{}", std::process::id()));
+    std::fs::create_dir_all(dir.join("media")).map_err(aerr)?;
+    let media = media.unwrap_or_default();
+    for (name, bytes) in &media {
+        if let Some(base) = name.strip_prefix("media/") {
+            if !base.contains(['/', '\\']) {
+                std::fs::write(dir.join("media").join(base), bytes).map_err(aerr)?;
+            }
+        }
+    }
+    let path = dir.join("doc.atd");
+    std::fs::write(&path, text).map_err(aerr)?;
+    let result = ::atrep::kanonizo::kanonizo_file(&path);
+    let _ = std::fs::remove_dir_all(&dir);
+    let result = result.map_err(aerr)?;
+    let bytes = ::atrep::docx::document_to_docx(&result.document, &|param| {
+        result
+            .media
+            .iter()
+            .find(|m| format!("media/{}", m.name) == param)
+            .map(|m| m.bytes.clone())
+    })
+    .map_err(aerr)?;
+    Ok(PyBytes::new(py, &bytes).unbind())
+}
+
 /// Resolve a dialektos by id and return its canonical
 /// serialization. `dir` resolves from a directory on disk;
 /// `sources` resolves from a dict of in-memory artifacts keyed by
@@ -208,6 +259,8 @@ fn atrep(py: Python<'_>, m: &Bound<'_, PyModule>) -> PyResult<()> {
     m.add_function(wrap_pyfunction!(plero, m)?)?;
     m.add_function(wrap_pyfunction!(outline, m)?)?;
     m.add_function(wrap_pyfunction!(endo, m)?)?;
+    m.add_function(wrap_pyfunction!(endo_bytes, m)?)?;
+    m.add_function(wrap_pyfunction!(exo_docx, m)?)?;
     m.add_function(wrap_pyfunction!(dialektos, m)?)?;
     m.add_function(wrap_pyfunction!(std_dialektoi, m)?)?;
     m.add("AtrepError", py.get_type::<AtrepError>())?;

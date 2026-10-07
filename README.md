@@ -55,6 +55,15 @@ a = atrep.endo("markdown", open("notes.md").read())
 # first, then pass the text; the result is lexigramma.
 a = atrep.endo("dsl", open("webster.dsl", encoding="utf-16").read())
 
+# Bytes in: a Word document, or a DSL file as is (decoded here).
+a = atrep.endo_bytes("docx", open("report.docx", "rb").read())
+a = atrep.endo_bytes("dsl", open("webster.dsl", "rb").read())
+
+# Bytes out: a litogramma document as a Word file; `media` maps
+# the enmedia parameters the document uses to their bytes.
+data = atrep.exo_docx(a, media={"media/fence.png": open("fence.png", "rb").read()})
+open("report.docx", "wb").write(data)
+
 # Versification milestone scheme (usfm/usx/osis only).
 a = atrep.endo("usfm", open("john.usfm").read(), scheme="std")
 ```
