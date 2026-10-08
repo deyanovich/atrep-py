@@ -2,7 +2,7 @@
 name = "atrep-py"
 # The bindings version IS the PyPI version (maturin reads it);
 # aligned with the atrep core it wraps, starting at 0.3.0.
-version = "0.3.8"
+version = "0.3.9"
 edition = "2021"
 # This crate ships to PyPI as wheels (maturin), never to
 # crates.io — the registry surface for the library is the core
@@ -20,6 +20,6 @@ crate-type = ["cdylib"]
 # The published core, offline: default features (net, bundle) off
 # keeps the dependency closure pure Rust. The std dialektoi are
 # embedded; non-std ones resolve from the path's directory.
-atrep = { version = "0.3.8", default-features = false, features = ["docx"] }
+atrep = { version = "0.3.9", default-features = false, features = ["docx"] }
 unicode-normalization = "0.1"
 pyo3 = { version = "0.29.0", features = ["extension-module", "abi3-py39"] }
