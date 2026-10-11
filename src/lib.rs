@@ -128,11 +128,22 @@ fn outline(py: Python<'_>, text: &str, path: &str) -> PyResult<Py<PyDict>> {
 /// Formats: markdown | html | rst | org | djot | docbook | bibtex
 /// | jats | tei | usfm | usx | osis | fb2 | rnc | opencorpora |
 /// proiel | conllu | dsl. `scheme` applies a versification milestone
-/// scheme (usfm/usx/osis only). FB2 binaries are not returned:
-/// the document references them as media/<id>.
+/// scheme (usfm/usx/osis only). `abbreviations` is the decoded text
+/// of the `#INCLUDE`d abbreviations dictionary (dsl only): with it
+/// the document opens on lexigramma's abbreviations list. FB2
+/// binaries are not returned: the document references them as
+/// media/<id>.
 #[pyfunction]
-#[pyo3(signature = (format, text, scheme=None))]
-fn endo(format: &str, text: &str, scheme: Option<&str>) -> PyResult<String> {
+#[pyo3(signature = (format, text, scheme=None, abbreviations=None))]
+fn endo(
+    format: &str,
+    text: &str,
+    scheme: Option<&str>,
+    abbreviations: Option<&str>,
+) -> PyResult<String> {
+    if abbreviations.is_some() && format != "dsl" {
+        return Err(aerr("abbreviations applies to dsl only"));
+    }
     use ::atrep::endo as e;
     let mut doc = match format {
         "markdown" => e::markdown_to_document(text),
@@ -155,7 +166,7 @@ fn endo(format: &str, text: &str, scheme: Option<&str>) -> PyResult<String> {
         // ABBYY Lingvo DSL, decoded by the caller: a file is
         // UTF-16 or a code page, so read it as bytes and decode
         // (atrep's `dsl` module does) before passing the text.
-        "dsl" => ::atrep::dsl::dsl_text_to_document(text, None),
+        "dsl" => ::atrep::dsl::dsl_text_to_document(text, abbreviations),
         other => return Err(aerr(format!("unsupported endo format: {other}"))),
     }
     .map_err(aerr)?;
@@ -171,16 +182,32 @@ fn endo(format: &str, text: &str, scheme: Option<&str>) -> PyResult<String> {
 /// Foreign format given as bytes -> canonical atrep: a Word
 /// document (`docx`; its images are not returned, the document
 /// refers to them as media/<name>) or a Lingvo dictionary (`dsl`,
-/// UTF-16 or a code page, `.dsl.dz` gzip).
+/// UTF-16 or a code page, `.dsl.dz` gzip). `abbreviations` is the
+/// `#INCLUDE`d abbreviations dictionary's bytes (dsl only; see
+/// `dsl_include`): with it the document opens on lexigramma's
+/// abbreviations list.
 #[pyfunction]
-fn endo_bytes(format: &str, data: &[u8]) -> PyResult<String> {
-    let doc = match format {
-        "docx" => ::atrep::docx::docx_to_document(data),
-        "dsl" => ::atrep::dsl::dsl_to_document(data),
-        other => return Err(aerr(format!("unsupported endo_bytes format: {other}"))),
+#[pyo3(signature = (format, data, abbreviations=None))]
+fn endo_bytes(format: &str, data: &[u8], abbreviations: Option<&[u8]>) -> PyResult<String> {
+    if abbreviations.is_some() && format != "dsl" {
+        return Err(aerr("abbreviations applies to dsl only"));
+    }
+    let doc = match (format, abbreviations) {
+        ("docx", _) => ::atrep::docx::docx_to_document(data),
+        ("dsl", None) => ::atrep::dsl::dsl_to_document(data),
+        ("dsl", Some(a)) => ::atrep::dsl::dsl_to_document_with_abbreviations(data, a),
+        (other, _) => return Err(aerr(format!("unsupported endo_bytes format: {other}"))),
     }
     .map_err(aerr)?;
     Ok(::atrep::dendron::serialize(&doc))
+}
+
+/// The file name a DSL dictionary's `#INCLUDE` header names (its
+/// abbreviations dictionary, beside it), or None. Read that file
+/// and pass its bytes as `endo_bytes`'s `abbreviations`.
+#[pyfunction]
+fn dsl_include(data: &[u8]) -> PyResult<Option<String>> {
+    ::atrep::dsl::dsl_include(data).map_err(aerr)
 }
 
 /// Export a litogramma document as a Word file: the bytes of the
@@ -189,7 +216,11 @@ fn endo_bytes(format: &str, data: &[u8]) -> PyResult<String> {
 /// written as its name.
 #[pyfunction]
 #[pyo3(signature = (text, media=None))]
-fn exo_docx(py: Python<'_>, text: &str, media: Option<HashMap<String, Vec<u8>>>) -> PyResult<Py<PyBytes>> {
+fn exo_docx(
+    py: Python<'_>,
+    text: &str,
+    media: Option<HashMap<String, Vec<u8>>>,
+) -> PyResult<Py<PyBytes>> {
     // Kanonizo settles the document (taxis, autonyms, the table
     // grid) from a file; a scratch directory holds the text and
     // the media it names.
@@ -227,7 +258,11 @@ fn exo_docx(py: Python<'_>, text: &str, media: Option<HashMap<String, Vec<u8>>>)
 /// dialektoi resolve.
 #[pyfunction]
 #[pyo3(signature = (id, dir=None, sources=None))]
-fn dialektos(id: &str, dir: Option<&str>, sources: Option<HashMap<String, String>>) -> PyResult<String> {
+fn dialektos(
+    id: &str,
+    dir: Option<&str>,
+    sources: Option<HashMap<String, String>>,
+) -> PyResult<String> {
     let d = match (dir, sources) {
         (Some(_), Some(_)) => {
             return Err(aerr("dir and sources are mutually exclusive"));
@@ -260,6 +295,7 @@ fn atrep(py: Python<'_>, m: &Bound<'_, PyModule>) -> PyResult<()> {
     m.add_function(wrap_pyfunction!(outline, m)?)?;
     m.add_function(wrap_pyfunction!(endo, m)?)?;
     m.add_function(wrap_pyfunction!(endo_bytes, m)?)?;
+    m.add_function(wrap_pyfunction!(dsl_include, m)?)?;
     m.add_function(wrap_pyfunction!(exo_docx, m)?)?;
     m.add_function(wrap_pyfunction!(dialektos, m)?)?;
     m.add_function(wrap_pyfunction!(std_dialektoi, m)?)?;

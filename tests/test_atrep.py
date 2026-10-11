@@ -29,7 +29,7 @@ DIA = (
 
 
 def test_version():
-    assert atrep.version() == "0.3.9"
+    assert atrep.version() == "0.3.10"
 
 
 def test_check_document():
@@ -137,18 +137,42 @@ def test_endo_tei_bibliography_and_cite_span():
 def test_endo_dsl():
     dsl = (
         '#NAME "Webster"\n#INDEX_LANGUAGE "English"\n#CONTENTS_LANGUAGE "English"\n\n'
-        "Liberal\n\t[m1][p]a.[/p][/m]\n"
-        "\t[m1]1) Free by birth; noble. [ex]a liberal ancestry[/ex][/m]\n"
-        "\t[m1]2) Generous; bounteous. See <<Liberalism>>.[/m]\n\n"
-        "Liberalism\n\t[m1]Liberal principles.[/m]\n"
+        "Culture\n\t[m1][p]n.[/p][/m]\n"
+        "\t[m1]1) The act or practice of cultivating. [ex]the culture of the soil[/ex][/m]\n"
+        "\t[m1]2) Refinement in manners and taste. Cf. <<Cultivation>>.[/m]\n\n"
+        "Cultivation\n\t[m1]The art or act of cultivating.[/m]\n"
     )
     a = atrep.endo("dsl", dsl)
     assert atrep.check(a) == "document"
     assert a.startswith("@@@!lexigramma\n")
     assert "@=/en en/=@" in a
-    assert "@! Liberal\n@=&a.&=@\n\n@:(1)\nFree by birth; noble. @~a liberal ancestry~@\n:@" in a
-    assert "See @>(Liberalism)." in a
-    assert "@! Liberalism\n@:(1)\nLiberal principles.\n:@" in a
+    assert "@! Culture\n@=&n.&=@\n\n@:(1)\nThe act or practice of cultivating. @~the culture of the soil~@\n:@" in a
+    assert "Cf. @>(Cultivation)." in a
+    assert "@! Cultivation\n@:(1)\nThe art or act of cultivating.\n:@" in a
+    assert "@[[" not in a
+
+
+def test_endo_dsl_abbreviations():
+    dsl = (
+        '#NAME "Webster"\n#INDEX_LANGUAGE "English"\n#CONTENTS_LANGUAGE "English"\n'
+        '#INCLUDE "abbrev.dsl"\n\n'
+        "Culture\n\t[m1][p]n.[/p][/m]\n"
+        "\t[m1]1) The act or practice of cultivating.[/m]\n"
+    )
+    abbrev = (
+        '#NAME "Abbreviations"\n#INDEX_LANGUAGE "English"\n#CONTENTS_LANGUAGE "English"\n\n'
+        "n.\n\tnoun\n"
+    )
+    assert atrep.dsl_include(dsl.encode()) == "abbrev.dsl"
+    assert atrep.dsl_include(b'#NAME "Webster"\n\nCulture\n\t[m1]x[/m]\n') is None
+    a = atrep.endo_bytes("dsl", dsl.encode(), abbreviations=abbrev.encode())
+    assert atrep.check(a) == "document"
+    assert "@[[\n" in a and "\n]]@" in a
+    assert a.index("@[[") < a.index("@! Culture")
+    assert "n.\n" in a and "noun" in a
+    assert a == atrep.endo("dsl", dsl, abbreviations=abbrev)
+    with pytest.raises(atrep.AtrepError):
+        atrep.endo_bytes("docx", b"PK", abbreviations=b"x")
 
 
 def test_endo_unknown_format():

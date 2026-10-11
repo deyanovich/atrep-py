@@ -59,6 +59,13 @@ a = atrep.endo("dsl", open("webster.dsl", encoding="utf-16").read())
 a = atrep.endo_bytes("docx", open("report.docx", "rb").read())
 a = atrep.endo_bytes("dsl", open("webster.dsl", "rb").read())
 
+# A DSL dictionary's #INCLUDE names its abbreviations dictionary;
+# pass that file's bytes too and the document opens on the
+# abbreviations list (`atrep check` then reports a label it lacks).
+data = open("webster.dsl", "rb").read()
+name = atrep.dsl_include(data)  # "abbrev.dsl" or None
+a = atrep.endo_bytes("dsl", data, abbreviations=open(name, "rb").read())
+
 # Bytes out: a litogramma document as a Word file; `media` maps
 # the enmedia parameters the document uses to their bytes.
 data = atrep.exo_docx(a, media={"media/fence.png": open("fence.png", "rb").read()})
